@@ -745,11 +745,35 @@ class Ui_MainWindow(QMainWindow):
 
 
         hasil = cosine_similarity(df, df)
+
+
         # Cosine_similarity fungsi dari sklearn
         # K(x,y) = <X,y> / (||X||*||Y||)
         print(hasil)
 
+        for i in range(len(header_file)):
+                print(round(hasil[0][1],4))
+                print(round(hasil[0][2],4))
+        
+        hasil_urutConsaint = list()
+        jmlh_file = 1
+        for i in range(len(header_file)-1):
+            self.listWidget_13.addItem("{} : {}".format(header_file[jmlh_file],str(round(hasil[0][jmlh_file],4))))
+            hasil_urutConsaint.append([header_file[jmlh_file],str(round(hasil[0][jmlh_file],4))])
+            jmlh_file +=1
 
+        self.listWidget_13.addItem('=================')
+
+           
+        # print(d)
+
+        hasil_urutConsaint.sort(key=lambda row: (row[1]),reverse=True)
+
+        increaseNo = 0
+        self.listWidget_13.addItem('Ranking')
+        for folder in total:
+            self.listWidget_13.addItem('{} : {}'.format(hasil_urutConsaint[increaseNo][0],hasil_urutConsaint[increaseNo][1]))
+            increaseNo+=1
 
         total.clear()
         header_file.clear()
