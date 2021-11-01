@@ -2,8 +2,9 @@ from PyQt5.uic import loadUi
 from enum import unique
 from operator import index
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import Qt, QAbstractTableModel
 from PyQt5.QtGui import QPixmap, QImage, QFont
-from PyQt5.QtWidgets import QFileDialog, QMessageBox, QAction, QMainWindow, QSlider, QPushButton, QToolTip, QApplication, QTableWidgetItem
+from PyQt5.QtWidgets import QFileDialog , QTableWidget,QMessageBox, QAction, QMainWindow, QTableView, QPushButton, QToolTip, QApplication, QTableWidgetItem
 
 import os
 import nltk # Library nltk
@@ -21,10 +22,13 @@ import sys
 import math
 Stopwords = set(stopwords.words('english'))
 
+
+
 #indexing data
 import pandas as pd
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # ======== Tokenize ========
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -38,6 +42,9 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 
 # ========= Boolean ===========
 from contextlib import redirect_stdout
+
+
+
 
 class Ui_MainWindow(QMainWindow):
     
@@ -64,6 +71,7 @@ class Ui_MainWindow(QMainWindow):
         self.pushButton_4.clicked.connect(self.tf_idf)
         self.pushButton_5.clicked.connect(self.jaccardFunction)
         self.pushButton_6.clicked.connect(self.ngramFunction)
+        self.pushButton_8.clicked.connect(self.cosineSimilarity)
         
 
     
@@ -332,17 +340,17 @@ class Ui_MainWindow(QMainWindow):
             files = []    
             
             print(zeroes_and_ones_of_all_words)
-            self.listWidget_5.addItem(str(zeroes_and_ones_of_all_words))
+            
 
             lis = zeroes_and_ones_of_all_words[0]
-            cnt = 1
+            cnt = 1    
             for index in lis:
                 if index == 1:
                     files.append(files_with_index[cnt])
                 cnt = cnt+1
                 
-            self.listWidget_12.addItem(str(files))
-
+        self.listWidget_12.addItem(str(zeroes_and_ones_of_all_words))
+        self.listWidget_5.addItem(str(files))
 
     # ========= TF/IDF ===========
 
@@ -649,6 +657,106 @@ class Ui_MainWindow(QMainWindow):
         for item in self.tableWidget_2.selectedItems():
             newitem = QTableWidgetItem()
             self.tableWidget_2.setItem(item.row(), item.column(), newitem)
+
+
+    def cosineSimilarity(self):
+        self.listWidget_13.clear()
+        
+        header_file = []
+        documents = []
+        total = []
+
+        for count in self.savefile:
+            total.append(count)
+
+        userInput = self.textEdit_5.toPlainText().lower()
+
+        # ======== Stem Keyword ==========
+        factory = StopWordRemoverFactory()
+        factoryStem = StemmerFactory()   
+
+        angka = re.sub(r"\d+", "", userInput)
+        tandabaca = angka.translate(str.maketrans("","",string.punctuation))
+        whitespace = tandabaca.strip()
+        whitespacetunggal = re.sub('\s+',' ',whitespace)
+
+        stopword = factory.create_stop_word_remover()
+        stop = stopword.remove(whitespacetunggal)   
+
+        # Stemming
+        stemmer = factoryStem.create_stemmer()
+        stemming   = stemmer.stem(stop)
+        tokenStem = nltk.tokenize.word_tokenize(stemming)
+        # ======== Stem Keyword End ======
+        sentenceUser = ' '.join(tokenStem)
+        documents.append(sentenceUser)
+        print(documents)
+
+        header_file.append("User Input")
+        header_file.extend(self.filename)
+        print(header_file)
+        
+
+        for i in range(len(total)):
+            document_word = []
+            with open(total[i],'r') as file:
+                for isi in file:
+                    tokenize = isi.lower()
+                    angka = re.sub(r"\d+", "", tokenize)
+                    tandabaca = angka.translate(str.maketrans("","",string.punctuation))
+                    whitespace = tandabaca.strip()
+                    whitespacetunggal = re.sub('\s+',' ',whitespace)
+
+                    stopword = factory.create_stop_word_remover()
+                    stop = stopword.remove(whitespacetunggal)   
+
+                    # Stemming
+                    stemmer = factoryStem.create_stemmer()
+                    stemming   = stemmer.stem(stop)
+                    tokenStem = nltk.tokenize.word_tokenize(stemming)
+
+                    document_word.extend(tokenStem)
+            sentence = ' '.join(document_word)
+            documents.append(sentence)
+
+        print(documents)
+    
+
+
+        count_vectorizer = CountVectorizer(stop_words=stopword)
+        count_vectorizer = CountVectorizer()
+        sparse_matrix = count_vectorizer.fit_transform(documents)
+
+        doc_term_matrix = sparse_matrix.todense()
+        df = pd.DataFrame(doc_term_matrix, 
+                        columns=count_vectorizer.get_feature_names_out(), 
+                        index=[header_file])
+
+
+        self.tableWidget_3.setColumnCount(len(df.columns))
+        self.tableWidget_3.setRowCount(len(df.index))
+
+        self.tableWidget_3.setHorizontalHeaderLabels(df.columns)
+        self.tableWidget_3.setVerticalHeaderLabels(header_file)
+
+        for i in range(len(df.index)):
+            for j in range(len(df.columns)):
+                self.tableWidget_3.setItem(i,j,QTableWidgetItem(str(df.iloc[i,j])))
+
+
+        hasil = cosine_similarity(df, df)
+        # Cosine_similarity fungsi dari sklearn
+        # K(x,y) = <X,y> / (||X||*||Y||)
+        print(hasil)
+
+
+
+        total.clear()
+        header_file.clear()
+
+
+
+
 
 class Node:
     def __init__(self ,docId, freq = None):
