@@ -60,8 +60,6 @@ class Ui_MainWindow(QMainWindow):
         
         self.stopWord_word = []
         self.stemming_word = []
-        self.counter = 1
-        self.increase = 0
 
         #Function Button
         self.pushButton.clicked.connect(self.addFile)
@@ -96,12 +94,8 @@ class Ui_MainWindow(QMainWindow):
         self.invertedIndex()
         self.printIncidence()
 
-        self.counter += 1
-        self.increase += 1
 
     def resetFile(self):
-        self.counter = 1
-        self.increase = 0
         self.stopWord_word.clear()
         self.stemming_word.clear()
         self.items_clear()
@@ -153,10 +147,10 @@ class Ui_MainWindow(QMainWindow):
 
     def preprocessingFile(self):
         self.listWidget_2.clear()
-
+        self.listWidget_3.clear()
+        self.listWidget_4.clear()
         self.fileNamePre = self.listWidget.currentItem().text()
         self.splitPre = self.getFileNameOnly(self.fileNamePre)
-        self.listWidget_2.addItem(self.splitPre)
         self.casefoldingWord(self.fileNamePre)
         
         self.processingFile()
@@ -178,15 +172,12 @@ class Ui_MainWindow(QMainWindow):
 
         for item in range(len(self.stemming_word)):
             exist_file = list()
-            index_data = list()
-            count = 0
-            for data in self.savefile:
-                with open(data, 'r') as namaFile:
+            for file in self.savefile:
+                with open(file, 'r') as namaFile:
                     for isi in namaFile:
                         isi = isi.lower()  
-                        tokenKata = nltk.tokenize.word_tokenize(isi)
                         if self.stemming_word[item] in isi:
-                            exist_file.append(os.path.basename(data))
+                            exist_file.append(os.path.basename(file))
                             exist_file = list(dict.fromkeys(exist_file))
   
       
@@ -215,6 +206,8 @@ class Ui_MainWindow(QMainWindow):
                         else:
                             self.tableWidget_2.setItem(x, y, QTableWidgetItem('0'))         
     
+
+    # =========== Boolean ==============
     def finding_all_unique_words_and_freq(self,words):
         words_unique = []
         word_freq = {}
@@ -361,11 +354,31 @@ class Ui_MainWindow(QMainWindow):
             total.append(0)
 
 
+        # ========================= Buat Kolom ===================================
         font = QFont()
         font.setBold(True)
 
         userInput = self.textEdit_2.toPlainText().lower()
-        userInput = re.split(r'\W+', userInput)
+        # ============== PREPROCESSING KEYWORD ======================
+        factory = StopWordRemoverFactory()
+        factoryStem = StemmerFactory()   
+
+        angka = re.sub(r"\d+", "", userInput)
+        tandabaca = angka.translate(str.maketrans("","",string.punctuation))
+        whitespace = tandabaca.strip()
+        whitespacetunggal = re.sub('\s+',' ',whitespace)
+
+        # Stop Word
+        stopword = factory.create_stop_word_remover()
+        stop = stopword.remove(whitespacetunggal)   
+
+        # Stemming
+        stemmer = factoryStem.create_stemmer()
+        stemming   = stemmer.stem(stop)
+        tokenStem = nltk.tokenize.word_tokenize(stemming)
+        sentenceIsi = ' '.join(tokenStem)
+        # ============== END PREPROCESSING KEYWORD ===================
+        userInput = sentenceIsi.split()
 
         
         kolom_tf = ['df', 'D/df', 'IDF', 'IDF+1']
@@ -416,7 +429,7 @@ class Ui_MainWindow(QMainWindow):
         # ========== Span IDF+1 ==========
 
         self.tableWidget.setSpan(0, len(self.savefile)+4, 2, 1)
-        newItem = QTableWidgetItem("IDF")
+        newItem = QTableWidgetItem("IDF + 1")
         newItem.setTextAlignment(QtCore.Qt.AlignCenter)
         self.tableWidget.setItem(0, len(self.savefile)+4, newItem)
         self.tableWidget.item(0, len(self.savefile)+4).setFont(font)
@@ -445,6 +458,8 @@ class Ui_MainWindow(QMainWindow):
             self.tableWidget.setItem(1, y+1+jarak_W, cell_item)
             self.tableWidget.item(1, y+1+jarak_W).setFont(font)
         
+        # ====================== END BUAT KOLOM ===============================
+
         # # __Isi Tf-Idf__
         for x in range(len(userInput)): # 0 < x < 3 (x = 0)
 
@@ -541,6 +556,8 @@ class Ui_MainWindow(QMainWindow):
         # print(total)
         # print(file_rank)
 
+
+    # ============= Jaccard =============
     def jaccardFunction(self):
         self.listWidget_6.clear()
         self.listWidget_11.clear()
@@ -551,7 +568,28 @@ class Ui_MainWindow(QMainWindow):
     
         userInput = self.textEdit_3.toPlainText().lower()
         # print(userInput)
-        userInput = re.split(r'\W+', userInput)
+
+        # ============== PREPROCESSING KEYWORD ======================
+        factory = StopWordRemoverFactory()
+        factoryStem = StemmerFactory()   
+
+        angka = re.sub(r"\d+", "", userInput)
+        tandabaca = angka.translate(str.maketrans("","",string.punctuation))
+        whitespace = tandabaca.strip()
+        whitespacetunggal = re.sub('\s+',' ',whitespace)
+
+        # Stop Word
+        stopword = factory.create_stop_word_remover()
+        stop = stopword.remove(whitespacetunggal)   
+
+        # Stemming
+        stemmer = factoryStem.create_stemmer()
+        stemming   = stemmer.stem(stop)
+        tokenStem = nltk.tokenize.word_tokenize(stemming)
+        sentenceUser = ' '.join(tokenStem)
+        # ============== END PREPROCESSING KEYWORD ===================
+
+        userInput = re.split(r'\W+', sentenceUser)
 
 
         a = userInput
@@ -563,7 +601,27 @@ class Ui_MainWindow(QMainWindow):
             with open(folder,'r') as namafile:
                 for isi in namafile:
                     isi = isi.lower()
-                    isi = isi.split()
+                    # ============== PREPROCESSING KEYWORD ======================
+                    factory = StopWordRemoverFactory()
+                    factoryStem = StemmerFactory()   
+
+                    angka = re.sub(r"\d+", "", isi)
+                    tandabaca = angka.translate(str.maketrans("","",string.punctuation))
+                    whitespace = tandabaca.strip()
+                    whitespacetunggal = re.sub('\s+',' ',whitespace)
+
+                    # Stop Word
+                    stopword = factory.create_stop_word_remover()
+                    stop = stopword.remove(whitespacetunggal)   
+
+                    # Stemming
+                    stemmer = factoryStem.create_stemmer()
+                    stemming   = stemmer.stem(stop)
+                    tokenStem = nltk.tokenize.word_tokenize(stemming)
+                    sentenceIsi = ' '.join(tokenStem)
+                    # ============== END PREPROCESSING KEYWORD ===================
+                    isi = sentenceIsi.split()
+
                     self.listWidget_6.addItem('{} :'.format(self.filename[increaseNo]))
                     self.listWidget_6.addItem('Original Text : [{}]'.format(isi))
                     c = set(a).intersection(isi)
@@ -582,20 +640,8 @@ class Ui_MainWindow(QMainWindow):
             self.listWidget_11.addItem('{} : [{}]'.format(hasil_urutJaccard[increaseNo][0],hasil_urutJaccard[increaseNo][1]))
             increaseNo+=1
 
-        # numpyHasil = np.array(hasil_urut).sort()
-        # print(numpyHasil)
-    
-        # for i in range(len(numpy)-1):
-        #     for j in range(len(self.savefile)-i-1):
-        #         if total[j] < total[j+1]:
-        #             temp_total = total[j]
-        #             total[j] = total[j+1]
-        #             total[j+1] = temp_total
 
-        #             temp = file_rank[j]
-        #             file_rank[j] = file_rank[j+1]
-        #             file_rank[j+1] = temp
-
+    # ================= N Gram ===============
     def ngramFunction(self):
         self.listWidget_9.clear()
         self.listWidget_10.clear()
@@ -606,7 +652,28 @@ class Ui_MainWindow(QMainWindow):
     
         userInput = self.textEdit_4.toPlainText().lower()
         # print(userInput)
-        userInput = re.split(r'\W+', userInput)
+        # Casefolding
+        # ============== PREPROCESSING KEYWORD ======================
+        factory = StopWordRemoverFactory()
+        factoryStem = StemmerFactory()   
+
+        angka = re.sub(r"\d+", "", userInput)
+        tandabaca = angka.translate(str.maketrans("","",string.punctuation))
+        whitespace = tandabaca.strip()
+        whitespacetunggal = re.sub('\s+',' ',whitespace)
+
+        # Stop Word
+        stopword = factory.create_stop_word_remover()
+        stop = stopword.remove(whitespacetunggal)   
+
+        # Stemming
+        stemmer = factoryStem.create_stemmer()
+        stemming   = stemmer.stem(stop)
+        tokenStem = nltk.tokenize.word_tokenize(stemming)
+        # ============== END PREPROCESSING KEYWORD ===================
+
+        sentenceUser = ' '.join(tokenStem)
+        userInput = re.split(r'\W+', sentenceUser)
 
         m = 2 # nilai untuk jumlah grams
         nGramSearchList = self.getNGrams(userInput,m)
@@ -625,7 +692,25 @@ class Ui_MainWindow(QMainWindow):
                     a = 0
                     for isi in namafile:
                         isi = isi.lower()
-                        isi = isi.split()
+                        # ========== PREPROCESSING ISI ==================
+
+                        angka = re.sub(r"\d+", "", isi)
+                        tandabaca = angka.translate(str.maketrans("","",string.punctuation))
+                        whitespace = tandabaca.strip()
+                        whitespacetunggal = re.sub('\s+',' ',whitespace)
+
+                        # Stop Word
+                        stopword = factory.create_stop_word_remover()
+                        stop = stopword.remove(whitespacetunggal)   
+
+                        # Stemming
+                        stemmer = factoryStem.create_stemmer()
+                        stemming   = stemmer.stem(stop)
+                        tokenStem = nltk.tokenize.word_tokenize(stemming)
+                        sentenceIsi = ' '.join(tokenStem)
+
+                        # ========= END PREPROCESSING ISI ==============
+                        isi = sentenceIsi.split()
                         fileGetNGrams = self.getNGrams(isi,m)
                         self.listWidget_9.addItem('{} : \n{}'.format(self.filename[increaseNo],fileGetNGrams))
                         
@@ -658,7 +743,7 @@ class Ui_MainWindow(QMainWindow):
             newitem = QTableWidgetItem()
             self.tableWidget_2.setItem(item.row(), item.column(), newitem)
 
-
+    # =================== Cosine Similarity =============
     def cosineSimilarity(self):
         self.listWidget_13.clear()
         
@@ -671,7 +756,8 @@ class Ui_MainWindow(QMainWindow):
 
         userInput = self.textEdit_5.toPlainText().lower()
 
-        # ======== Stem Keyword ==========
+        # ======== Preprocessing ==========
+        # Casefolding
         factory = StopWordRemoverFactory()
         factoryStem = StemmerFactory()   
 
@@ -680,6 +766,7 @@ class Ui_MainWindow(QMainWindow):
         whitespace = tandabaca.strip()
         whitespacetunggal = re.sub('\s+',' ',whitespace)
 
+        # Stop Word
         stopword = factory.create_stop_word_remover()
         stop = stopword.remove(whitespacetunggal)   
 
@@ -688,6 +775,7 @@ class Ui_MainWindow(QMainWindow):
         stemming   = stemmer.stem(stop)
         tokenStem = nltk.tokenize.word_tokenize(stemming)
         # ======== Stem Keyword End ======
+
         sentenceUser = ' '.join(tokenStem)
         documents.append(sentenceUser)
         print(documents)
@@ -751,9 +839,6 @@ class Ui_MainWindow(QMainWindow):
         # K(x,y) = <X,y> / (||X||*||Y||)
         print(hasil)
 
-        for i in range(len(header_file)):
-                print(round(hasil[0][1],4))
-                print(round(hasil[0][2],4))
         
         hasil_urutConsaint = list()
         jmlh_file = 1
